@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import tableData from '../../../mockdata.json';
 import { IoChevronBackCircleOutline, IoChevronForwardCircleOutline } from 'react-icons/io5';
+import { TbSortAscendingLetters, TbSortAscendingNumbers, TbSortDescendingLetters, TbSortDescendingNumbers } from "react-icons/tb";
 
 const initialWidths = {
   ID: 10,
@@ -17,6 +18,7 @@ const ResizableTable = () => {
 
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
+  const [sortOrder, setSortOrder] = useState(true) // true for ascending - false for descending
   const [columnWidths, setColumnWidths] = useState(initialWidths);
 
   useEffect(() => {
@@ -58,6 +60,7 @@ const ResizableTable = () => {
     setData(paginatedData);
   };
 
+  // go to previous page
   const prevPage = () => {
     if (page > 1) {
       setPage(page - 1);
@@ -65,6 +68,7 @@ const ResizableTable = () => {
     }
   };
 
+  // go to next page
   const nextPage = () => {
     const maxPage = Math.ceil(1000 / itemsPerPage);
     if (page < maxPage) {
@@ -73,10 +77,33 @@ const ResizableTable = () => {
     }
   };
 
+  // go to specific page
   const displayUniquePage = (newPage) => {
     setPage(newPage);
     displayData(newPage);
   };
+
+  // sorting logic
+  const toggleSort = (columnToSort) => {
+    let temp = [...data];
+    setSortOrder(!sortOrder);
+    if (sortOrder) {
+      if (columnToSort == 'ID') temp.sort((a,b) => b.id - a.id)
+      if (columnToSort == 'Age') temp.sort((a,b) => b.age - a.age)
+      if (columnToSort == 'Name') temp.sort((a,b) => b.name.localeCompare(a.name))
+      else if (columnToSort == 'Email') temp.sort((a,b) => b.email.localeCompare(a.email))
+      else if (columnToSort == 'Gender') temp.sort((a,b) => b.gender.localeCompare(a.gender))
+      else if (columnToSort == 'Date') temp.sort((a,b) => new Date(b.date) - new Date(a.date))
+    } else {
+      if (columnToSort == 'ID') temp.sort((a,b) => a.id - b.id)
+      if (columnToSort == 'Age') temp.sort((a,b) => a.age - b.age)
+      if (columnToSort == 'Name') temp.sort((a,b) => a.name.localeCompare(b.name))
+      else if (columnToSort == 'Email') temp.sort((a,b) => a.email.localeCompare(b.email))
+      else if (columnToSort == 'Gender') temp.sort((a,b) => a.gender.localeCompare(b.gender))
+      else if (columnToSort == 'Date') temp.sort((a,b) => new Date(a.date) - new Date(b.date))
+    }
+    setData(temp)
+  }
 
   return (
     <React.Fragment>
@@ -89,8 +116,15 @@ const ResizableTable = () => {
                   key={column}
                   className="border px-4 py-2 relative font-qsand"
                   style={{ width: `${columnWidths[column]}%` }}
+                  onClick={() => toggleSort(column)}
                 >
-                  {column}
+                  <div className='flex justify-between items-center'>
+                    {column}
+                    {!sortOrder ?
+                      (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortAscendingNumbers className='cursor-pointer' /> : <TbSortAscendingLetters className='cursor-pointer' />
+                    : (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortDescendingNumbers className='cursor-pointer' /> : <TbSortDescendingLetters className='cursor-pointer' />
+                    }
+                  </div>
                   <div
                     className="absolute top-0 right-0 h-full w-2 cursor-col-resize"
                     onMouseDown={(e) => handleMouseDown(e, column)}
@@ -113,6 +147,7 @@ const ResizableTable = () => {
           </tbody>
         </table>
       </div>
+
       <div className="mt-4 mb-12 flex items-center justify-center">
         <div className="text-green-500 pr-5 cursor-pointer dark:text-red-500" onClick={prevPage}>
           <IoChevronBackCircleOutline />
