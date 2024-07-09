@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { MdOutlineLightMode, MdDarkMode } from 'react-icons/md';
 
+import ResizableTable from './components/table'
+
 const App = () => {
   const [dark, setDark] = useState(false);
 
@@ -8,7 +10,7 @@ const App = () => {
 
   return (
     <div className={dark && 'dark'}>
-      <div className="dark:bg-black h-[100vh]">
+      <div className="dark:bg-black max-w-[1920px] m-auto">
         <div className='flex justify-between items-center p-4'>
           <p className="text-red-500 dark:text-yellow-500 font-qsand text-3xl">Soikat's Stantech Assignment</p>
 
@@ -16,6 +18,7 @@ const App = () => {
             {dark ? <MdOutlineLightMode className="text-white" /> : <MdDarkMode />}
           </div>
         </div>
+        <ResizableTable />
       </div>
     </div>
   )
