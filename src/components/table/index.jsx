@@ -195,7 +195,7 @@ const ResizableTable = () => {
 
       <div className="container mx-auto mt-5 h-[580px] overflow-auto">
         <table className="table-auto w-full border-collapse h-96">
-          <thead className='bg-blue-500 sticky top-0 z-10'>
+          <thead className='bg-blue-500 dark:bg-yellow-500 sticky top-0 z-10'>
             <tr>
               {columns.map((column, index) => (
                 <th
@@ -221,21 +221,11 @@ const ResizableTable = () => {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {/* {data.map(row => (
-              <tr key={row.id} className='h-10'>
-                <td className="border px-4 py-2 font-qsand text-center">{row.id}</td>
-                <td className="border px-4 py-2 font-qsand text-center">{row.name}</td>
-                <td className="border px-4 py-2 font-qsand text-center">{row.age}</td>
-                <td className="border px-4 py-2 font-qsand text-center">{row.gender}</td>
-                <td className="border px-4 py-2 font-qsand text-center">{row.email}</td>
-                <td className="border px-4 py-2 font-qsand text-center">{row.date}</td>
-              </tr>
-            ))} */}
+          <tbody className='dark:bg-neutral-700'>
             {data.map((row, rowIndex) => (
               <tr key={rowIndex}>
                 {columns.map((column, colIndex) => (
-                  <td key={colIndex} className="border px-4 py-2">
+                  <td key={colIndex} className="border px-4 py-2 font-qsand dark:text-white">
                     {renderColumnContent(row, column)}
                   </td>
                 ))}
@@ -253,7 +243,7 @@ const ResizableTable = () => {
         {Array.from({ length: Math.ceil(1000 / itemsPerPage) }, (_, index) => (
           <p
             key={index + 1}
-            className={`font-qsand px-2 mr-2 text-[10px] border ${index + 1 === page ? 'bg-blue-500 text-white dark:bg-stone-800' : 'border-blue-500 text-blue-500 dark:text-black dark:border-stone-800'
+            className={`font-qsand px-2 mr-2 text-[10px] border ${index + 1 === page ? 'bg-blue-500 text-white dark:bg-stone-800' : 'border-blue-500 text-blue-500 dark:text-white dark:border-stone-800'
               } rounded-full cursor-pointer`}
             onClick={() => displayUniquePage(index + 1)}
           >
