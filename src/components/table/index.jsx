@@ -14,12 +14,17 @@ const initialWidths = {
 
 const ResizableTable = () => {
   const itemsPerPage = 40;
+  const dragItem = useRef();
+  const dragOverItem = useRef();
   const resizableRefs = useRef({});
 
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
-  const [sortOrder, setSortOrder] = useState(true) // true for ascending - false for descending
+  const [name, setName] = useState({ val: '', error: false });
+  const [email, setEmail] = useState({ val: '', error: false });
   const [columnWidths, setColumnWidths] = useState(initialWidths);
+  const [columns, setColumns] = useState(['ID', 'Name', 'Age', 'Gender', 'Email', 'Date']);
+  const [sortOrder, setSortOrder] = useState(true) // true for ascending - false for descending
 
   useEffect(() => {
     displayData(page)
@@ -60,7 +65,6 @@ const ResizableTable = () => {
     setData(paginatedData);
   };
 
-  // go to previous page
   const prevPage = () => {
     if (page > 1) {
       setPage(page - 1);
@@ -68,7 +72,6 @@ const ResizableTable = () => {
     }
   };
 
-  // go to next page
   const nextPage = () => {
     const maxPage = Math.ceil(1000 / itemsPerPage);
     if (page < maxPage) {
@@ -77,52 +80,137 @@ const ResizableTable = () => {
     }
   };
 
-  // go to specific page
   const displayUniquePage = (newPage) => {
     setPage(newPage);
     displayData(newPage);
   };
 
-  // sorting logic
   const toggleSort = (columnToSort) => {
     let temp = [...data];
     setSortOrder(!sortOrder);
     if (sortOrder) {
-      if (columnToSort == 'ID') temp.sort((a,b) => b.id - a.id)
-      if (columnToSort == 'Age') temp.sort((a,b) => b.age - a.age)
-      if (columnToSort == 'Name') temp.sort((a,b) => b.name.localeCompare(a.name))
-      else if (columnToSort == 'Email') temp.sort((a,b) => b.email.localeCompare(a.email))
-      else if (columnToSort == 'Gender') temp.sort((a,b) => b.gender.localeCompare(a.gender))
-      else if (columnToSort == 'Date') temp.sort((a,b) => new Date(b.date) - new Date(a.date))
+      if (columnToSort == 'ID') temp.sort((a, b) => b.id - a.id)
+      if (columnToSort == 'Age') temp.sort((a, b) => b.age - a.age)
+      if (columnToSort == 'Name') temp.sort((a, b) => b.name.localeCompare(a.name))
+      else if (columnToSort == 'Email') temp.sort((a, b) => b.email.localeCompare(a.email))
+      else if (columnToSort == 'Gender') temp.sort((a, b) => b.gender.localeCompare(a.gender))
+      else if (columnToSort == 'Date') temp.sort((a, b) => new Date(b.date) - new Date(a.date))
     } else {
-      if (columnToSort == 'ID') temp.sort((a,b) => a.id - b.id)
-      if (columnToSort == 'Age') temp.sort((a,b) => a.age - b.age)
-      if (columnToSort == 'Name') temp.sort((a,b) => a.name.localeCompare(b.name))
-      else if (columnToSort == 'Email') temp.sort((a,b) => a.email.localeCompare(b.email))
-      else if (columnToSort == 'Gender') temp.sort((a,b) => a.gender.localeCompare(b.gender))
-      else if (columnToSort == 'Date') temp.sort((a,b) => new Date(a.date) - new Date(b.date))
+      if (columnToSort == 'ID') temp.sort((a, b) => a.id - b.id)
+      if (columnToSort == 'Age') temp.sort((a, b) => a.age - b.age)
+      if (columnToSort == 'Name') temp.sort((a, b) => a.name.localeCompare(b.name))
+      else if (columnToSort == 'Email') temp.sort((a, b) => a.email.localeCompare(b.email))
+      else if (columnToSort == 'Gender') temp.sort((a, b) => a.gender.localeCompare(b.gender))
+      else if (columnToSort == 'Date') temp.sort((a, b) => new Date(a.date) - new Date(b.date))
     }
     setData(temp)
   }
 
+  const filterName = query => {
+    setName({ ...name, val: query, error: false });
+    let temp = [...data];
+    temp = temp.filter(val => val.name.toLowerCase().includes(query.toLowerCase()));
+    if (query != '' && temp.length > 0) {
+      setData(temp)
+    } else if (query != '' && temp.length == 0) {
+      setName({ ...name, val: query, error: true });
+    } else if (query == '') {
+      displayData(page)
+    }
+  }
+
+  const filterEmail = query => {
+    setEmail({ ...email, val: query, error: false });
+    let temp = [...data];
+    temp = temp.filter(val => val.email.toLowerCase().includes(query.toLowerCase()));
+    if (query != '' && temp.length > 0) {
+      setData(temp)
+    } else if (query != '' && temp.length == 0) {
+      setEmail({ ...email, val: query, error: true });
+    } else if (query == '') {
+      displayData(page)
+    }
+  }
+
+  // Drag and Drop Handlers
+  const handleDragStart = (index) => {
+    dragItem.current = index;
+  };
+
+  const handleDragEnter = (index) => {
+    dragOverItem.current = index;
+    const newColumns = [...columns];
+    const draggedItemContent = newColumns[dragItem.current];
+    newColumns.splice(dragItem.current, 1);
+    newColumns.splice(dragOverItem.current, 0, draggedItemContent);
+    dragItem.current = dragOverItem.current;
+    dragOverItem.current = null;
+    setColumns(newColumns);
+  };
+
+  const renderColumnContent = (row, column) => {
+    switch (column) {
+      case 'ID':
+        return row.id;
+      case 'Name':
+        return row.name;
+      case 'Age':
+        return row.age;
+      case 'Gender':
+        return row.gender;
+      case 'Email':
+        return row.email;
+      case 'Date':
+        return row.date;
+      default:
+        return null;
+    }
+  };
+
   return (
     <React.Fragment>
+      <div className='grid grid-cols-12 gap-4 px-20 pt-4'>
+        <div className='col-span-6'>
+          <input
+            type='text'
+            value={name.val}
+            placeholder='Search Name...'
+            onChange={e => filterName(e.target.value)}
+            className='w-full border-[1px] border-gray-500 p-2 font-qsand'
+          />
+          {name.error ? <p className='font-qsand text-sm text-red-500'>No records found for the specified query..!!</p> : null}
+        </div>
+
+        <div className='col-span-6'>
+          <input
+            value={email.val}
+            type='email'
+            placeholder='Search Email...'
+            onChange={e => filterEmail(e.target.value)}
+            className='w-full border-[1px] border-gray-500 p-2 font-qsand'
+          />
+          {email.error ? <p className='font-qsand text-sm text-red-500'>No emails found for the specified query..!!</p> : null}
+        </div>
+      </div>
+
       <div className="container mx-auto mt-5 h-[580px] overflow-auto">
         <table className="table-auto w-full border-collapse h-96">
           <thead className='bg-blue-500 sticky top-0 z-10'>
             <tr>
-              {Object.keys(initialWidths).map(column => (
+              {columns.map((column, index) => (
                 <th
                   key={column}
-                  className="border px-4 py-2 relative font-qsand"
                   style={{ width: `${columnWidths[column]}%` }}
-                  onClick={() => toggleSort(column)}
+                  className="border px-4 py-2 relative font-qsand"
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragEnter={() => handleDragEnter(index)}
                 >
                   <div className='flex justify-between items-center'>
                     {column}
                     {!sortOrder ?
-                      (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortAscendingNumbers className='cursor-pointer' /> : <TbSortAscendingLetters className='cursor-pointer' />
-                    : (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortDescendingNumbers className='cursor-pointer' /> : <TbSortDescendingLetters className='cursor-pointer' />
+                      (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortAscendingNumbers className='cursor-pointer' onClick={() => toggleSort(column)} /> : <TbSortAscendingLetters className='cursor-pointer' onClick={() => toggleSort(column)} />
+                      : (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortDescendingNumbers className='cursor-pointer' onClick={() => toggleSort(column)} /> : <TbSortDescendingLetters className='cursor-pointer' onClick={() => toggleSort(column)} />
                     }
                   </div>
                   <div
@@ -134,14 +222,23 @@ const ResizableTable = () => {
             </tr>
           </thead>
           <tbody>
-            {data.map(row => (
-              <tr key={row.id}>
+            {/* {data.map(row => (
+              <tr key={row.id} className='h-10'>
                 <td className="border px-4 py-2 font-qsand text-center">{row.id}</td>
                 <td className="border px-4 py-2 font-qsand text-center">{row.name}</td>
                 <td className="border px-4 py-2 font-qsand text-center">{row.age}</td>
                 <td className="border px-4 py-2 font-qsand text-center">{row.gender}</td>
                 <td className="border px-4 py-2 font-qsand text-center">{row.email}</td>
                 <td className="border px-4 py-2 font-qsand text-center">{row.date}</td>
+              </tr>
+            ))} */}
+            {data.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {columns.map((column, colIndex) => (
+                  <td key={colIndex} className="border px-4 py-2">
+                    {renderColumnContent(row, column)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
