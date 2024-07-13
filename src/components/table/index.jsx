@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import tableData from '../../../mockdata.json';
 import { IoChevronBackCircleOutline, IoChevronForwardCircleOutline } from 'react-icons/io5';
 import { TbSortAscendingLetters, TbSortAscendingNumbers, TbSortDescendingLetters, TbSortDescendingNumbers } from "react-icons/tb";
 
@@ -20,6 +19,7 @@ const ResizableTable = () => {
 
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
+  const [loader, setLoader] = useState(true);
   const [name, setName] = useState({ val: '', error: false });
   const [email, setEmail] = useState({ val: '', error: false });
   const [columnWidths, setColumnWidths] = useState(initialWidths);
@@ -27,8 +27,63 @@ const ResizableTable = () => {
   const [sortOrder, setSortOrder] = useState(true) // true for ascending - false for descending
 
   useEffect(() => {
-    displayData(page)
-  }, [page, tableData])
+    fetchTableData()
+  }, [page])
+
+  const fetchTableData = async () => {
+    try {
+      setLoader(true)
+      const res = await fetch(`https://randomuser.me/api/?results=1000`);
+      const jsonData = await res.json();
+
+      if (!jsonData.hasOwnProperty('error')) {
+        const formattedData = jsonData.results.map(user => ({
+          id: user.login.uuid.split('-')[0] || '---',
+          name: `${user.name.title}. ${user.name.first} ${user.name.last}`,
+          age: user.dob.age,
+          gender: user.gender,
+          email: user.email,
+          date: user.dob.date,
+          thumbnail: user.picture.thumbnail
+        }));
+
+        displayData(formattedData, page);
+        setLoader(false)
+      } else {
+        setLoader(false)
+        setData(jsonData.error)
+      }
+    } catch (e) {
+      console.log(e)
+    }
+  };
+
+  const displayData = (incomingData, pageNum) => {
+    const startIndex = (pageNum - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = incomingData.slice(startIndex, endIndex);
+    setData(paginatedData);
+  };
+
+  const prevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+      displayData(page - 1);
+    }
+  };
+
+  const nextPage = () => {
+    const maxPage = Math.ceil(1000 / itemsPerPage);
+    if (page < maxPage) {
+      setPage(page + 1);
+      displayData(page + 1);
+    }
+  };
+
+  const displayUniquePage = (newPage) => {
+    setPage(newPage);
+    displayData(newPage);
+  };
 
   // Initializes the resizing process when the user clicks and holds on the resizer.
   const handleMouseDown = (e, columnName) => {
@@ -57,34 +112,6 @@ const ResizableTable = () => {
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  // generate unique slices based on pagenumber
-  const displayData = (pageNum) => {
-    const startIndex = (pageNum - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedData = tableData.slice(startIndex, endIndex);
-    setData(paginatedData);
-  };
-
-  const prevPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-      displayData(page - 1);
-    }
-  };
-
-  const nextPage = () => {
-    const maxPage = Math.ceil(1000 / itemsPerPage);
-    if (page < maxPage) {
-      setPage(page + 1);
-      displayData(page + 1);
-    }
-  };
-
-  const displayUniquePage = (newPage) => {
-    setPage(newPage);
-    displayData(newPage);
-  };
-
   const toggleSort = (columnToSort) => {
     let temp = [...data];
     setSortOrder(!sortOrder);
@@ -108,27 +135,37 @@ const ResizableTable = () => {
 
   const filterName = query => {
     setName({ ...name, val: query, error: false });
+  
+    if (query === '') {
+      fetchTableData();
+      return;
+    }
+  
     let temp = [...data];
     temp = temp.filter(val => val.name.toLowerCase().includes(query.toLowerCase()));
-    if (query != '' && temp.length > 0) {
-      setData(temp)
-    } else if (query != '' && temp.length == 0) {
+  
+    if (temp.length > 0) {
+      setData(temp);
+    } else {
       setName({ ...name, val: query, error: true });
-    } else if (query == '') {
-      displayData(page)
     }
-  }
+  };
 
   const filterEmail = query => {
     setEmail({ ...email, val: query, error: false });
+
+    if (query === '') {
+      fetchTableData();
+      return;
+    }
+
     let temp = [...data];
     temp = temp.filter(val => val.email.toLowerCase().includes(query.toLowerCase()));
-    if (query != '' && temp.length > 0) {
-      setData(temp)
-    } else if (query != '' && temp.length == 0) {
+
+    if (temp.length > 0) {
+      setData(temp);
+    } else {
       setEmail({ ...email, val: query, error: true });
-    } else if (query == '') {
-      displayData(page)
     }
   }
 
@@ -161,16 +198,24 @@ const ResizableTable = () => {
       case 'Email':
         return row.email;
       case 'Date':
-        return row.date;
+        return convertDateFormat(row.date);
       default:
         return null;
     }
   };
 
+  const convertDateFormat = (isoDateString) => {
+    const date = new Date(isoDateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   return (
     <React.Fragment>
-      <div className='grid grid-cols-12 gap-4 px-20 pt-4'>
-        <div className='col-span-6'>
+      <div className='grid grid-cols-12 gap-4 px-4 md:px-20 pt-4'>
+        <div className='col-span-12 md:col-span-6'>
           <input
             type='text'
             value={name.val}
@@ -181,7 +226,7 @@ const ResizableTable = () => {
           {name.error ? <p className='font-qsand text-sm text-red-500'>No records found for the specified query..!!</p> : null}
         </div>
 
-        <div className='col-span-6'>
+        <div className='col-span-12 md:col-span-6'>
           <input
             value={email.val}
             type='email'
@@ -197,41 +242,95 @@ const ResizableTable = () => {
         <table className="table-auto w-full border-collapse h-96">
           <thead className='bg-blue-500 dark:bg-yellow-500 sticky top-0 z-10'>
             <tr>
-              {columns.map((column, index) => (
+              {columns.map((header, index) => (
                 <th
-                  key={column}
-                  style={{ width: `${columnWidths[column]}%` }}
+                  key={header}
+                  style={{ width: `${columnWidths[header]}%` }}
                   className="border px-4 py-2 relative font-qsand"
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragEnter={() => handleDragEnter(index)}
                 >
-                  <div className='flex justify-between items-center'>
-                    {column}
-                    {!sortOrder ?
-                      (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortAscendingNumbers className='cursor-pointer' onClick={() => toggleSort(column)} /> : <TbSortAscendingLetters className='cursor-pointer' onClick={() => toggleSort(column)} />
-                      : (column == 'ID' || column == 'Age' || column == 'Date') ? <TbSortDescendingNumbers className='cursor-pointer' onClick={() => toggleSort(column)} /> : <TbSortDescendingLetters className='cursor-pointer' onClick={() => toggleSort(column)} />
-                    }
+                  <div className='flex justify-between items-center cursor-move'>
+                    <span>{header}</span>
+                    <div className='flex flex-col space-y-1'>
+                      {sortOrder
+                        ? header === 'ID' || header === 'Age'
+                          ? <TbSortAscendingNumbers size={20} onClick={() => toggleSort(header)} />
+                          : <TbSortAscendingLetters size={20} onClick={() => toggleSort(header)} />
+                        : header === 'ID' || header === 'Age'
+                          ? <TbSortDescendingNumbers size={20} onClick={() => toggleSort(header)} />
+                          : <TbSortDescendingLetters size={20} onClick={() => toggleSort(header)} />
+                      }
+                    </div>
                   </div>
-                  <div
-                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize"
-                    onMouseDown={(e) => handleMouseDown(e, column)}
-                  ></div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className='dark:bg-neutral-700'>
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {columns.map((column, colIndex) => (
-                  <td key={colIndex} className="border px-4 py-2 font-qsand dark:text-white">
-                    {renderColumnContent(row, column)}
+          {!loader ? (
+            <tbody className='dark:bg-neutral-700'>
+              {typeof data != 'string' ? (
+                data?.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columns.map((column, colIndex) => (
+                      <td
+                        key={colIndex}
+                        className='p-4 border font-qsand relative dark:text-white'
+                        style={{ width: `${columnWidths[column]}%` }}
+                      >
+                        {renderColumnContent(row, column)}
+                        <div
+                          className='absolute top-0 right-0 h-full w-1 cursor-col-resize'
+                          onMouseDown={(e) => handleMouseDown(e, column)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr >
+                  <td colSpan={6} className="border px-4 py-2 font-qsand text-red-500 dark:text-yellow-500 text-center">{data}</td></tr>
+              )}
+            </tbody>
+          ) : (
+            <tbody className='dark:bg-neutral-700'>
+              {Array(5).fill(0).map((_, id) => (
+                <tr key={id}>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
                   </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
+                  </td>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
+                  </td>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
+                  </td>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
+                  </td>
+                  <td className="border px-4 py-2 font-qsand dark:text-white">
+                    <div className="h-6 bg-gray-300 rounded-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gray-200 animate-wave"></div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
 
@@ -240,16 +339,22 @@ const ResizableTable = () => {
           <IoChevronBackCircleOutline />
         </div>
 
-        {Array.from({ length: Math.ceil(1000 / itemsPerPage) }, (_, index) => (
-          <p
-            key={index + 1}
-            className={`font-qsand px-2 mr-2 text-[10px] border ${index + 1 === page ? 'bg-blue-500 text-white dark:bg-stone-800' : 'border-blue-500 text-blue-500 dark:text-white dark:border-stone-800'
-              } rounded-full cursor-pointer`}
-            onClick={() => displayUniquePage(index + 1)}
-          >
-            {index + 1}
-          </p>
-        ))}
+        <div className='is1000:flex hidden'>
+          {Array.from({ length: Math.ceil(1000 / itemsPerPage) }, (_, index) => (
+            <p
+              key={index + 1}
+              className={`font-qsand px-2 mr-2 text-[10px] border ${index + 1 === page ? 'bg-blue-500 text-white dark:bg-stone-800' : 'border-blue-500 text-blue-500 dark:text-white dark:border-stone-800'
+                } rounded-full cursor-pointer`}
+              onClick={() => displayUniquePage(index + 1)}
+            >
+              {index + 1}
+            </p>
+          ))}
+        </div>
+
+        <div className="flex is1000:hidden">
+          <p className='font-qsand border-blue-500 border px-5 rounded-lg dark:border-yellow-500 dark:text-white dark:bg-stone-800'>{page} / {Math.ceil(1000 / itemsPerPage)}</p>
+        </div>
 
         <div className="text-green-500 pl-5 cursor-pointer dark:text-red-500" onClick={nextPage}>
           <IoChevronForwardCircleOutline />
