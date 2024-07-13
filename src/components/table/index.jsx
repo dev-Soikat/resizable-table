@@ -253,8 +253,8 @@ const ResizableTable = () => {
                 >
                   <div className='flex justify-between items-center cursor-move'>
                     <span>{header}</span>
-                    <div className='flex flex-col space-y-1'>
-                      {sortOrder
+                    <div className='flex flex-col space-y-1 cursor-pointer'>
+                      {!sortOrder
                         ? header === 'ID' || header === 'Age'
                           ? <TbSortAscendingNumbers size={20} onClick={() => toggleSort(header)} />
                           : <TbSortAscendingLetters size={20} onClick={() => toggleSort(header)} />
